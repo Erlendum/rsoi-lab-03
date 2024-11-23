@@ -134,7 +134,7 @@ jobs:
       
   autograding:
     name: Autograding
-    needs: ["deploy-gateway","deploy-reservation-system","deploy-library-system","deploy-rating-system"]
+    # needs: ["deploy-gateway","deploy-reservation-system","deploy-library-system","deploy-rating-system"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
