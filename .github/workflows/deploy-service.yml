@@ -53,6 +53,6 @@ jobs:
           envs: SERVICE_EXT_PORT
           allenvs: true
           script: >-
-            docker pull erlendum/rsoi-lab-02-${{ inputs.service-name }}:latest &&
+            docker pull rsoikiller/rsoi-lab-02-${{ inputs.service-name }}:latest &&
             (docker stop ${{ inputs.service-name }} && docker rm ${{ inputs.service-name }} || true) &&
-            docker run --env-file /envs/${{ inputs.service-name }}.env --name ${{ inputs.service-name }} -p $SERVICE_EXT_PORT:8080 --restart always -d erlendum/rsoi-lab-02-${{ inputs.service-name }}
+            docker run --env-file /envs/${{ inputs.service-name }}.env --name ${{ inputs.service-name }} -p $SERVICE_EXT_PORT:8080 --restart always -d rsoikiller/rsoi-lab-02-${{ inputs.service-name }}
