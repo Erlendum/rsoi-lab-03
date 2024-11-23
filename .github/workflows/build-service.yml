@@ -38,6 +38,6 @@ jobs:
           context: .
           file: build/${{ inputs.service-name }}/Dockerfile
           push: true
-          tags: erlendum/rsoi-lab-02-${{ inputs.service-name }}:latest
+          tags: rsoikiller/rsoi-lab-02-${{ inputs.service-name }}:latest
           build-args: |
             PIPELINE_ID=${{ github.run_number }}
