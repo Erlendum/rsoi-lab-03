@@ -61,6 +61,7 @@ func NewHandler(config *config.Config) *handler {
 		config: config,
 		circuitBreakers: map[string]circuitBreaker{
 			"getBooksByUids":        circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			"getBooksByLibrary":     circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
 			"getLibrariesByUids":    circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
 			"getReservationsByUser": circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
 			"getReservationsByUid":  circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
