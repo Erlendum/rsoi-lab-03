@@ -156,6 +156,8 @@ jobs:
             VARIANT: v4
             SERVICE_NAME: library-system
             PORT_NUMBER: 8060
+            SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+            SSH_USER: ${{ secrets.DEPLOY_USERNAME }}
 
       - uses: education/autograding@v1
         id: autograder
