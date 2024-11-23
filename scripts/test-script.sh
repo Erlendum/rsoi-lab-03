@@ -11,6 +11,7 @@ ssh_user=${5:-${SSH_USER}}
 path=$(dirname "$0")
 
 temp_key=$(mktemp)
+echo "$ssh_private_key"
 echo "$ssh_private_key" > "$temp_key"
 chmod 600 "$temp_key"
 
