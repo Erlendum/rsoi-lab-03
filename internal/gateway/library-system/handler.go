@@ -524,7 +524,10 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 	})
 	if err != nil {
 		log.Err(err).Msg("failed to process request to reservation service")
-		return c.JSON(http.StatusServiceUnavailable, echo.Map{"message": "Bonus Service unavailable"})
+		if errors.Is(err, errNotOkStatusCode) {
+			return c.JSON(statusCode, echo.Map{"message": err.Error()})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
 	var body []byte
@@ -534,7 +537,7 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 	})
 	if err != nil && !errors.Is(err, errNotOkStatusCode) {
 		log.Err(err).Msg("failed to process request to rating service")
-		return c.JSON(statusCode, echo.Map{"message": "failed to process request"})
+		return c.JSON(http.StatusServiceUnavailable, echo.Map{"message": "Bonus Service unavailable"})
 	}
 
 	if statusCode != http.StatusOK && statusCode != http.StatusNotFound {
