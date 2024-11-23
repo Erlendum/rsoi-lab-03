@@ -44,7 +44,7 @@ step() {
 
   cat "$temp_key"
 
-  ssh -i "$temp_key" root@zhremarket.ru "docker $operation $service"
+  ssh -i "$temp_key" -o StrictHostKeyChecking=no root@zhremarket.ru "docker $operation $service"
   
   if [[ "$operation" == "start" ]]; then
     "$path"/wait-for.sh -t 120 "http://zhremarket.ru:$port/manage/health" -- echo "Host zhremarket.ru:$port is active"
