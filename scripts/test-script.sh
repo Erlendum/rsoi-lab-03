@@ -42,6 +42,8 @@ step() {
 
   printf "=== Step %d: %s %s ===\n" "$step" "$operation" "$service"
 
+  cat "$temp_key"
+
   ssh -i "$temp_key" root@zhremarket.ru "docker $operation $service"
   
   if [[ "$operation" == "start" ]]; then
