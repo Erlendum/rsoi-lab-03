@@ -1,0 +1,6 @@
+server:
+  address: ":8080"
+  shutdown_timeout: 20s
+reservation_system_url: "http://zhremarket.ru:8070/api/v1"
+library_system_url: "http://zhremarket.ru:8060/api/v1"
+rating_system_url: "http://zhremarket.ru:8050/api/v1"
