@@ -8,133 +8,133 @@ on:
       - master
 jobs:
 
-  # test-gateway:
-  #   name: Test gateway
-  #   uses: ./.github/workflows/test-service.yml
-  #   with:
-  #     service-name: gateway
+  test-gateway:
+    name: Test gateway
+    uses: ./.github/workflows/test-service.yml
+    with:
+      service-name: gateway
 
-  # test-library-system:
-  #   name: Test library-system
-  #   uses: ./.github/workflows/test-service.yml
-  #   with:
-  #     service-name: library-system
+  test-library-system:
+    name: Test library-system
+    uses: ./.github/workflows/test-service.yml
+    with:
+      service-name: library-system
 
-  # test-rating-system:
-  #   name: Test rating-system
-  #   uses: ./.github/workflows/test-service.yml
-  #   with:
-  #     service-name: rating-system
+  test-rating-system:
+    name: Test rating-system
+    uses: ./.github/workflows/test-service.yml
+    with:
+      service-name: rating-system
 
-  # test-reservation-system:
-  #   name: Test reservation-system
-  #   uses: ./.github/workflows/test-service.yml
-  #   with:
-  #     service-name: reservation-system
+  test-reservation-system:
+    name: Test reservation-system
+    uses: ./.github/workflows/test-service.yml
+    with:
+      service-name: reservation-system
 
-  # build-gateway:
-  #   name: Build gateway
-  #   needs: ["test-gateway"]
-  #   uses: ./.github/workflows/build-service.yml
-  #   with:
-  #     service-name: gateway
-  #   secrets:
-  #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  #     DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  build-gateway:
+    name: Build gateway
+    needs: ["test-gateway"]
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: gateway
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  # build-library-system:
-  #   name: Build library-system
-  #   needs: ["test-library-system"]
-  #   uses: ./.github/workflows/build-service.yml
-  #   with:
-  #     service-name: library-system
-  #   secrets:
-  #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  #     DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  build-library-system:
+    name: Build library-system
+    needs: ["test-library-system"]
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: library-system
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  # build-rating-system:
-  #   name: Build rating-system
-  #   needs: ["test-rating-system"]
-  #   uses: ./.github/workflows/build-service.yml
-  #   with:
-  #     service-name: rating-system
-  #   secrets:
-  #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  #     DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  build-rating-system:
+    name: Build rating-system
+    needs: ["test-rating-system"]
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: rating-system
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  # build-reservation-system:
-  #   name: Build reservation-system
-  #   needs: ["test-reservation-system"]
-  #   uses: ./.github/workflows/build-service.yml
-  #   with:
-  #     service-name: reservation-system
-  #   secrets:
-  #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  #     DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  build-reservation-system:
+    name: Build reservation-system
+    needs: ["test-reservation-system"]
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: reservation-system
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  # deploy-gateway:
-  #   name: Deploy gateway
-  #   needs: ["build-gateway"]
-  #   uses: ./.github/workflows/deploy-service.yml
-  #   with:
-  #     service-name: gateway
-  #   secrets:
-  #     GATEWAY_EXT_PORT: ${{ secrets.GATEWAY_EXT_PORT }}
-  #     LIBRARY_SYSTEM_EXT_PORT: ${{ secrets.LIBRARY_SYSTEM_EXT_PORT }}
-  #     RESERVATION_SYSTEM_EXT_PORT: ${{ secrets.RESERVATION_SYSTEM_EXT_PORT }}
-  #     RATING_SYSTEM_EXT_PORT: ${{ secrets.RATING_SYSTEM_EXT_PORT }}
-  #     DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-  #     DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
-  #     DEPLOY_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+  deploy-gateway:
+    name: Deploy gateway
+    needs: ["build-gateway"]
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      service-name: gateway
+    secrets:
+      GATEWAY_EXT_PORT: ${{ secrets.GATEWAY_EXT_PORT }}
+      LIBRARY_SYSTEM_EXT_PORT: ${{ secrets.LIBRARY_SYSTEM_EXT_PORT }}
+      RESERVATION_SYSTEM_EXT_PORT: ${{ secrets.RESERVATION_SYSTEM_EXT_PORT }}
+      RATING_SYSTEM_EXT_PORT: ${{ secrets.RATING_SYSTEM_EXT_PORT }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
+      DEPLOY_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
 
-  # deploy-library-system:
-  #   name: Deploy library-system
-  #   needs: ["build-library-system"]
-  #   uses: ./.github/workflows/deploy-service.yml
-  #   with:
-  #     service-name: library-system
-  #   secrets:
-  #     GATEWAY_EXT_PORT: ${{ secrets.GATEWAY_EXT_PORT }}
-  #     LIBRARY_SYSTEM_EXT_PORT: ${{ secrets.LIBRARY_SYSTEM_EXT_PORT }}
-  #     RESERVATION_SYSTEM_EXT_PORT: ${{ secrets.RESERVATION_SYSTEM_EXT_PORT }}
-  #     RATING_SYSTEM_EXT_PORT: ${{ secrets.RATING_SYSTEM_EXT_PORT }}
-  #     DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-  #     DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
-  #     DEPLOY_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+  deploy-library-system:
+    name: Deploy library-system
+    needs: ["build-library-system"]
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      service-name: library-system
+    secrets:
+      GATEWAY_EXT_PORT: ${{ secrets.GATEWAY_EXT_PORT }}
+      LIBRARY_SYSTEM_EXT_PORT: ${{ secrets.LIBRARY_SYSTEM_EXT_PORT }}
+      RESERVATION_SYSTEM_EXT_PORT: ${{ secrets.RESERVATION_SYSTEM_EXT_PORT }}
+      RATING_SYSTEM_EXT_PORT: ${{ secrets.RATING_SYSTEM_EXT_PORT }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
+      DEPLOY_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
 
-  # deploy-rating-system:
-  #   name: Deploy rating-system
-  #   needs: ["build-rating-system"]
-  #   uses: ./.github/workflows/deploy-service.yml
-  #   with:
-  #     service-name: rating-system
-  #   secrets:
-  #     GATEWAY_EXT_PORT: ${{ secrets.GATEWAY_EXT_PORT }}
-  #     LIBRARY_SYSTEM_EXT_PORT: ${{ secrets.LIBRARY_SYSTEM_EXT_PORT }}
-  #     RESERVATION_SYSTEM_EXT_PORT: ${{ secrets.RESERVATION_SYSTEM_EXT_PORT }}
-  #     RATING_SYSTEM_EXT_PORT: ${{ secrets.RATING_SYSTEM_EXT_PORT }}
-  #     DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-  #     DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
-  #     DEPLOY_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+  deploy-rating-system:
+    name: Deploy rating-system
+    needs: ["build-rating-system"]
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      service-name: rating-system
+    secrets:
+      GATEWAY_EXT_PORT: ${{ secrets.GATEWAY_EXT_PORT }}
+      LIBRARY_SYSTEM_EXT_PORT: ${{ secrets.LIBRARY_SYSTEM_EXT_PORT }}
+      RESERVATION_SYSTEM_EXT_PORT: ${{ secrets.RESERVATION_SYSTEM_EXT_PORT }}
+      RATING_SYSTEM_EXT_PORT: ${{ secrets.RATING_SYSTEM_EXT_PORT }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
+      DEPLOY_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
       
-  # deploy-reservation-system:
-  #   name: Deploy reservation-system
-  #   needs: ["build-reservation-system"]
-  #   uses: ./.github/workflows/deploy-service.yml
-  #   with:
-  #     service-name: reservation-system
-  #   secrets:
-  #     GATEWAY_EXT_PORT: ${{ secrets.GATEWAY_EXT_PORT }}
-  #     LIBRARY_SYSTEM_EXT_PORT: ${{ secrets.LIBRARY_SYSTEM_EXT_PORT }}
-  #     RESERVATION_SYSTEM_EXT_PORT: ${{ secrets.RESERVATION_SYSTEM_EXT_PORT }}
-  #     RATING_SYSTEM_EXT_PORT: ${{ secrets.RATING_SYSTEM_EXT_PORT }}
-  #     DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-  #     DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
-  #     DEPLOY_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+  deploy-reservation-system:
+    name: Deploy reservation-system
+    needs: ["build-reservation-system"]
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      service-name: reservation-system
+    secrets:
+      GATEWAY_EXT_PORT: ${{ secrets.GATEWAY_EXT_PORT }}
+      LIBRARY_SYSTEM_EXT_PORT: ${{ secrets.LIBRARY_SYSTEM_EXT_PORT }}
+      RESERVATION_SYSTEM_EXT_PORT: ${{ secrets.RESERVATION_SYSTEM_EXT_PORT }}
+      RATING_SYSTEM_EXT_PORT: ${{ secrets.RATING_SYSTEM_EXT_PORT }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
+      DEPLOY_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
       
   autograding:
     name: Autograding
-    # needs: ["deploy-gateway","deploy-reservation-system","deploy-library-system","deploy-rating-system"]
+    needs: ["deploy-gateway","deploy-reservation-system","deploy-library-system","deploy-rating-system"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
