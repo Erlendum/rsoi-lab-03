@@ -918,7 +918,7 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 			Context: c,
 		})
 
-		return c.JSON(http.StatusServiceUnavailable, echo.Map{"message": "Bonus Service unavailable"})
+		return c.NoContent(http.StatusNoContent)
 
 	}
 
