@@ -310,7 +310,7 @@ type reservationResp struct {
 }
 
 func (h *handler) getReservationsByUser(userName string) ([]reservationResp, int, error) {
-	log.Info().Msg(userName)
+	log.Info().Msg(userName + " getReservationsByUser")
 	reqURL, err := url.Parse(h.config.ReservationSystemURL + "/reservations/by-user/" + userName)
 	if err != nil {
 		return nil, 0, err
