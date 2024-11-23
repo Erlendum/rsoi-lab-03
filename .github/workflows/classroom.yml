@@ -154,8 +154,8 @@ jobs:
         run: ./scripts/test-script.sh
         env:
             VARIANT: v4
-            SERVICE_NAME: library-system
-            PORT_NUMBER: 8060
+            SERVICE_NAME: rating-system
+            PORT_NUMBER: 8050
             SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
             SSH_USER: ${{ secrets.DEPLOY_USERNAME }}
 
