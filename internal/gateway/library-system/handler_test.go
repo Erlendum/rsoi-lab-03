@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/Erlendum/rsoi-lab-03/internal/gateway/config"
+	circuit_breaker "github.com/Erlendum/rsoi-lab-03/pkg/circuit-breaker"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -52,7 +53,9 @@ func Test_SendEvent(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.TestName, func(t *testing.T) {
 			httpStub := httpClientStub{err: tt.Data.wantErr, statusCode: tt.Data.wantStatusCode}
-			h := handler{httpClient: &httpStub, config: &config.Config{}}
+			h := handler{httpClient: &httpStub, config: &config.Config{}, circuitBreakers: map[string]circuitBreaker{
+				"getLibraries": circuit_breaker.New(1, 1),
+			}}
 
 			req := httptest.NewRequest(http.MethodGet, "/test", nil)
 			rw := httptest.NewRecorder()

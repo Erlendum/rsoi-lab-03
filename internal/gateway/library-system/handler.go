@@ -33,7 +33,7 @@ type circuitBreaker interface {
 type handler struct {
 	httpClient      httpClient
 	config          *config.Config
-	circuitBreakers map[any]circuitBreaker
+	circuitBreakers map[string]circuitBreaker
 	retryHandler    *retryHandler
 }
 
@@ -59,13 +59,13 @@ func NewHandler(config *config.Config) *handler {
 			Transport: &http.Transport{MaxConnsPerHost: defaultMaxConnsPerHost},
 		},
 		config: config,
-		circuitBreakers: map[any]circuitBreaker{
-			handler.getBooksByUids:        circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
-			handler.getLibrariesByUids:    circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
-			handler.getReservationsByUser: circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
-			handler.getReservationsByUid:  circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
-			handler.getRatingByUser:       circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
-			handler.getLibraries:          circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+		circuitBreakers: map[string]circuitBreaker{
+			"getBookByUids":         circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			"getLibrariesByUids":    circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			"getReservationsByUser": circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			"getReservationsByUid":  circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			"getRatingByUser":       circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			"getLibraries":          circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
 		},
 		retryHandler: NewRetryHandler(),
 	}
@@ -136,7 +136,7 @@ func (h *handler) GetLibraries(c echo.Context) error {
 	var statusCode int
 	var body []byte
 	var err error
-	err = h.circuitBreakers[h.getLibraries].Call(func() error {
+	err = h.circuitBreakers["getLibraries"].Call(func() error {
 		statusCode, body, err = h.getLibraries(c.QueryParam("city"), c.QueryParam("page"), c.QueryParam("size"))
 		return err
 	})
@@ -183,7 +183,7 @@ func (h *handler) GetBooksByLibrary(c echo.Context) error {
 	var statusCode int
 	var body []byte
 	var err error
-	err = h.circuitBreakers[h.getBooksByLibrary].Call(func() error {
+	err = h.circuitBreakers["getBooksByLibrary"].Call(func() error {
 		statusCode, body, err = h.getBooksByLibrary(c.QueryParam("page"), c.QueryParam("size"), c.QueryParam("showAll"), c.Param("libraryUid"))
 		return err
 	})
@@ -373,7 +373,7 @@ func (h *handler) GetBooksByUser(c echo.Context) error {
 	var reservations []reservationResp
 	var statusCode int
 	var err error
-	err = h.circuitBreakers[h.getReservationsByUser].Call(func() error {
+	err = h.circuitBreakers["getReservationsByUser"].Call(func() error {
 		reservations, statusCode, err = h.getReservationsByUser(c.Request().Header.Get("X-User-Name"))
 		return err
 	})
@@ -393,7 +393,7 @@ func (h *handler) GetBooksByUser(c echo.Context) error {
 	}
 
 	var booksMap map[string]bookResp
-	err = h.circuitBreakers[h.getBooksByUids].Call(func() error {
+	err = h.circuitBreakers["getBooksByUids"].Call(func() error {
 		booksMap, err = h.getBooksByUids(booksUids)
 		return err
 	})
@@ -405,7 +405,7 @@ func (h *handler) GetBooksByUser(c echo.Context) error {
 	}
 
 	var librariesMap map[string]libraryResp
-	err = h.circuitBreakers[h.getLibrariesByUids].Call(func() error {
+	err = h.circuitBreakers["getLibrariesByUids"].Call(func() error {
 		librariesMap, err = h.getLibrariesByUids(librariesUids)
 		return err
 	})
@@ -517,7 +517,7 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 	var reservations []reservationResp
 	var statusCode int
 	var err error
-	err = h.circuitBreakers[h.getReservationsByUser].Call(func() error {
+	err = h.circuitBreakers["getReservationsByUser"].Call(func() error {
 		reservations, statusCode, err = h.getReservationsByUser(c.Request().Header.Get("X-User-Name"))
 		return err
 	})
@@ -530,7 +530,7 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 	}
 
 	var body []byte
-	err = h.circuitBreakers[h.getRatingByUser].Call(func() error {
+	err = h.circuitBreakers["getRatingByUser"].Call(func() error {
 		statusCode, body, err = h.getRatingByUser(c.Request().Header.Get("X-User-Name"))
 		return err
 	})
@@ -669,7 +669,7 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 	}
 
 	var books map[string]bookResp
-	err = h.circuitBreakers[h.getBooksByUids].Call(func() error {
+	err = h.circuitBreakers["getBooksByUids"].Call(func() error {
 		books, err = h.getBooksByUids([]string{createdReservation.BookUid})
 		return err
 	})
@@ -692,7 +692,7 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 	}
 
 	var libraries map[string]libraryResp
-	err = h.circuitBreakers[h.getLibrariesByUids].Call(func() error {
+	err = h.circuitBreakers["getLibrariesByUids"].Call(func() error {
 		libraries, err = h.getLibrariesByUids([]string{createdReservation.LibraryUid})
 		return err
 	})
@@ -803,7 +803,7 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 	var statusCode int
 	var body []byte
 	var err error
-	err = h.circuitBreakers[h.getReservationsByUid].Call(func() error {
+	err = h.circuitBreakers["getReservationsByUid"].Call(func() error {
 		statusCode, body, err = h.getReservationsByUid(c.Param("reservationUid"))
 		return err
 	})
@@ -951,7 +951,7 @@ func (h *handler) GetRatingByUser(c echo.Context) error {
 	var statusCode int
 	var body []byte
 	var err error
-	err = h.circuitBreakers[h.getRatingByUser].Call(func() error {
+	err = h.circuitBreakers["getRatingByUser"].Call(func() error {
 		statusCode, body, err = h.getRatingByUser(c.Request().Header.Get("X-User-Name"))
 		return err
 	})
