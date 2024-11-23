@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Erlendum/rsoi-lab-03/internal/gateway/config"
+	circuit_breaker "github.com/Erlendum/rsoi-lab-03/pkg/circuit-breaker"
 	my_time "github.com/Erlendum/rsoi-lab-03/pkg/time"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
@@ -25,9 +26,15 @@ type httpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+type circuitBreaker interface {
+	Call(operation func() error) error
+}
+
 type handler struct {
-	httpClient httpClient
-	config     *config.Config
+	httpClient      httpClient
+	config          *config.Config
+	circuitBreakers map[any]circuitBreaker
+	retryHandler    *retryHandler
 }
 
 const (
@@ -46,13 +53,26 @@ var (
 )
 
 func NewHandler(config *config.Config) *handler {
-	return &handler{
+	h := &handler{
 		httpClient: &http.Client{
 			Timeout:   defaultTimeout,
 			Transport: &http.Transport{MaxConnsPerHost: defaultMaxConnsPerHost},
 		},
 		config: config,
+		circuitBreakers: map[any]circuitBreaker{
+			handler.getBooksByUids:        circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			handler.getLibrariesByUids:    circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			handler.getReservationsByUser: circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			handler.getReservationsByUid:  circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			handler.getRatingByUser:       circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+			handler.getLibraries:          circuit_breaker.New(config.CircuitBreaker.MaxFailures, config.CircuitBreaker.ResetTimeout),
+		},
+		retryHandler: NewRetryHandler(),
 	}
+
+	h.retryHandler.Handle()
+
+	return h
 }
 
 func compareConditions(a, b string) (int, error) {
@@ -82,74 +102,98 @@ func (h *handler) Register(echo *echo.Echo) {
 	api.GET("/rating", h.GetRatingByUser)
 }
 
-func (h *handler) GetLibraries(c echo.Context) error {
+func (h *handler) getLibraries(city, page, size string) (int, []byte, error) {
 	queryParams := url.Values{}
-	queryParams.Add("city", c.QueryParam("city"))
-	queryParams.Add("page", c.QueryParam("page"))
-	queryParams.Add("size", c.QueryParam("size"))
+	queryParams.Add("city", city)
+	queryParams.Add("page", page)
+	queryParams.Add("size", size)
 	reqURL, err := url.Parse(h.config.LibrarySystemURL + "/libraries")
 	if err != nil {
-		log.Err(err).Msg("failed to parse request to library service")
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "failed to parse request"})
+		return 0, nil, err
 	}
 
 	reqURL.RawQuery = queryParams.Encode()
 
 	req, err := http.NewRequest(http.MethodGet, reqURL.String(), nil)
 	if err != nil {
-		log.Err(err).Msg("failed to process request to library service")
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "failed to process request"})
+		return 0, nil, err
 	}
 
 	resp, err := h.httpClient.Do(req)
 	if err != nil {
-		log.Err(err).Msg("failed to process request to library service")
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		return 0, nil, err
 	}
 
 	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return resp.StatusCode, body, nil
+}
+
+func (h *handler) GetLibraries(c echo.Context) error {
+	var statusCode int
+	var body []byte
+	var err error
+	err = h.circuitBreakers[h.getLibraries].Call(func() error {
+		statusCode, body, err = h.getLibraries(c.QueryParam("city"), c.QueryParam("page"), c.QueryParam("size"))
+		return err
+	})
 	if err != nil {
 		log.Err(err).Msg("failed to process request to library service")
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
 	c.Response().Header().Set("Content-Type", "application/json")
-	return c.String(resp.StatusCode, string(body))
+	return c.String(statusCode, string(body))
+}
+
+func (h *handler) getBooksByLibrary(page, size, showAll, libraryUid string) (int, []byte, error) {
+	queryParams := url.Values{}
+	queryParams.Add("page", page)
+	queryParams.Add("size", size)
+	queryParams.Add("showAll", showAll)
+	reqURL, err := url.Parse(h.config.LibrarySystemURL + "/libraries/" + libraryUid + "/books")
+	if err != nil {
+		return 0, nil, err
+	}
+
+	reqURL.RawQuery = queryParams.Encode()
+
+	req, err := http.NewRequest(http.MethodGet, reqURL.String(), nil)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	resp, err := h.httpClient.Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return resp.StatusCode, body, nil
 }
 
 func (h *handler) GetBooksByLibrary(c echo.Context) error {
-	queryParams := url.Values{}
-	queryParams.Add("page", c.QueryParam("page"))
-	queryParams.Add("size", c.QueryParam("size"))
-	queryParams.Add("showAll", c.QueryParam("showAll"))
-	reqURL, err := url.Parse(h.config.LibrarySystemURL + "/libraries/" + c.Param("libraryUid") + "/books")
-	if err != nil {
-		log.Err(err).Msg("failed to parse request to library service")
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "failed to parse request"})
-	}
-
-	reqURL.RawQuery = queryParams.Encode()
-
-	req, err := http.NewRequest(http.MethodGet, reqURL.String(), nil)
-	if err != nil {
-		log.Err(err).Msg("failed to process request to library service")
-		return c.JSON(http.StatusBadRequest, echo.Map{"message": "failed to process request"})
-	}
-
-	resp, err := h.httpClient.Do(req)
-	if err != nil {
-		log.Err(err).Msg("failed to process request to library service")
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
-	}
-
-	body, err := io.ReadAll(resp.Body)
+	var statusCode int
+	var body []byte
+	var err error
+	err = h.circuitBreakers[h.getBooksByLibrary].Call(func() error {
+		statusCode, body, err = h.getBooksByLibrary(c.QueryParam("page"), c.QueryParam("size"), c.QueryParam("showAll"), c.Param("libraryUid"))
+		return err
+	})
 	if err != nil {
 		log.Err(err).Msg("failed to process request to library service")
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
 	c.Response().Header().Set("Content-Type", "application/json")
-	return c.String(resp.StatusCode, string(body))
+	return c.String(statusCode, string(body))
 }
 
 type bookResp struct {
@@ -326,7 +370,13 @@ func (h *handler) getReservationsByUid(uid string) (int, []byte, error) {
 }
 
 func (h *handler) GetBooksByUser(c echo.Context) error {
-	reservations, statusCode, err := h.getReservationsByUser(c.Request().Header.Get("X-User-Name"))
+	var reservations []reservationResp
+	var statusCode int
+	var err error
+	err = h.circuitBreakers[h.getReservationsByUser].Call(func() error {
+		reservations, statusCode, err = h.getReservationsByUser(c.Request().Header.Get("X-User-Name"))
+		return err
+	})
 	if err != nil {
 		log.Err(err).Msg("failed to process request to reservation service")
 		if errors.Is(err, errNotOkStatusCode) {
@@ -342,16 +392,27 @@ func (h *handler) GetBooksByUser(c echo.Context) error {
 		librariesUids = append(librariesUids, r.LibraryUid)
 	}
 
-	booksMap, err := h.getBooksByUids(booksUids)
+	var booksMap map[string]bookResp
+	err = h.circuitBreakers[h.getBooksByUids].Call(func() error {
+		booksMap, err = h.getBooksByUids(booksUids)
+		return err
+	})
+
+	// fallback-ответ только с uid книг и библиотек, без подробной информации о них
 	if err != nil {
 		log.Err(err).Msg("failed to process request to library service")
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		return c.JSON(http.StatusOK, reservations)
 	}
 
-	librariesMap, err := h.getLibrariesByUids(librariesUids)
+	var librariesMap map[string]libraryResp
+	err = h.circuitBreakers[h.getLibrariesByUids].Call(func() error {
+		librariesMap, err = h.getLibrariesByUids(librariesUids)
+		return err
+	})
+	// fallback-ответ только с uid книг и библиотек, без подробной информации о них
 	if err != nil {
 		log.Err(err).Msg("failed to process request to library service")
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		return c.JSON(http.StatusOK, reservations)
 	}
 
 	type reservationExtended struct {
@@ -434,8 +495,32 @@ func (h *handler) createReservation(reqBody []byte, userName string) (int, []byt
 	return resp.StatusCode, body, nil
 }
 
+func (h *handler) deleteReservation(reservationUid string) (int, error) {
+	req, err := http.NewRequest(http.MethodDelete, h.config.ReservationSystemURL+"/reservations/"+reservationUid, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	resp, err := h.httpClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, errNotOkStatusCode
+	}
+
+	return resp.StatusCode, nil
+}
+
 func (h *handler) ReserveBookByUser(c echo.Context) error {
-	reservations, statusCode, err := h.getReservationsByUser(c.Request().Header.Get("X-User-Name"))
+	var reservations []reservationResp
+	var statusCode int
+	var err error
+	err = h.circuitBreakers[h.getReservationsByUser].Call(func() error {
+		reservations, statusCode, err = h.getReservationsByUser(c.Request().Header.Get("X-User-Name"))
+		return err
+	})
 	if err != nil {
 		log.Err(err).Msg("failed to process request to reservation service")
 		if errors.Is(err, errNotOkStatusCode) {
@@ -444,7 +529,11 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
-	statusCode, body, err := h.getRatingByUser(c.Request().Header.Get("X-User-Name"))
+	var body []byte
+	err = h.circuitBreakers[h.getRatingByUser].Call(func() error {
+		statusCode, body, err = h.getRatingByUser(c.Request().Header.Get("X-User-Name"))
+		return err
+	})
 	if err != nil && !errors.Is(err, errNotOkStatusCode) {
 		log.Err(err).Msg("failed to process request to rating service")
 		return c.JSON(statusCode, echo.Map{"message": "failed to process request"})
@@ -526,13 +615,45 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 	}
 
+	type fallbackResponse struct {
+		ReservationUid string `json:"reservationUid"`
+		Status         string `json:"status"`
+		StartDate      string `json:"startDate"`
+		TillDate       string `json:"tillDate"`
+		BookUid        string `json:"bookUid"`
+		LibraryUid     string `json:"libraryUid"`
+		Rating         struct {
+			Stars int `json:"stars"`
+		} `json:"rating"`
+	}
+
 	statusCode, body, err = h.updateAvailableCount(createdReservation.LibraryUid, createdReservation.BookUid, -1)
+	// откат + возврат в очередь
 	if err != nil {
 		log.Err(err).Msg("failed to process request to library service")
-		if errors.Is(err, errNotOkStatusCode) {
-			return c.String(statusCode, string(body))
+		statusCode, err = h.deleteReservation(createdReservation.ReservationUid)
+		if err != nil {
+			log.Err(err).Msg("failed to process request to reservation service")
+			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		h.retryHandler.broker.Publish("request.retry", retryData{
+			Time:    time.Now(),
+			Call:    h.ReserveBookByUser,
+			Context: c,
+		})
+		return c.JSON(http.StatusOK, fallbackResponse{
+			ReservationUid: createdReservation.ReservationUid,
+			Status:         createdReservation.Status,
+			StartDate:      createdReservation.StartDate,
+			TillDate:       createdReservation.TillDate,
+			BookUid:        createdReservation.BookUid,
+			LibraryUid:     createdReservation.LibraryUid,
+			Rating: struct {
+				Stars int `json:"stars"`
+			}{
+				Stars: stars,
+			},
+		})
 	}
 
 	type response struct {
@@ -547,16 +668,50 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 		} `json:"rating"`
 	}
 
-	books, err := h.getBooksByUids([]string{createdReservation.BookUid})
+	var books map[string]bookResp
+	err = h.circuitBreakers[h.getBooksByUids].Call(func() error {
+		books, err = h.getBooksByUids([]string{createdReservation.BookUid})
+		return err
+	})
+	// fallback-ответ только с uid книг и библиотек, без подробной информации о них
 	if err != nil {
 		log.Err(err).Msg("failed to process request to library service")
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		return c.JSON(http.StatusOK, fallbackResponse{
+			ReservationUid: createdReservation.ReservationUid,
+			Status:         createdReservation.Status,
+			StartDate:      createdReservation.StartDate,
+			TillDate:       createdReservation.TillDate,
+			BookUid:        createdReservation.BookUid,
+			LibraryUid:     createdReservation.LibraryUid,
+			Rating: struct {
+				Stars int `json:"stars"`
+			}{
+				Stars: stars,
+			},
+		})
 	}
 
-	libraries, err := h.getLibrariesByUids([]string{createdReservation.LibraryUid})
+	var libraries map[string]libraryResp
+	err = h.circuitBreakers[h.getLibrariesByUids].Call(func() error {
+		libraries, err = h.getLibrariesByUids([]string{createdReservation.LibraryUid})
+		return err
+	})
+	// fallback-ответ только с uid книг и библиотек, без подробной информации о них
 	if err != nil {
 		log.Err(err).Msg("failed to process request to library service")
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		return c.JSON(http.StatusOK, fallbackResponse{
+			ReservationUid: createdReservation.ReservationUid,
+			Status:         createdReservation.Status,
+			StartDate:      createdReservation.StartDate,
+			TillDate:       createdReservation.TillDate,
+			BookUid:        createdReservation.BookUid,
+			LibraryUid:     createdReservation.LibraryUid,
+			Rating: struct {
+				Stars int `json:"stars"`
+			}{
+				Stars: stars,
+			},
+		})
 	}
 
 	return c.JSON(http.StatusOK, response{
@@ -645,7 +800,13 @@ func (h *handler) updateUserRating(username string, starsDiff int) (int, []byte,
 }
 
 func (h *handler) ReturnBookByUser(c echo.Context) error {
-	statusCode, body, err := h.getReservationsByUid(c.Param("reservationUid"))
+	var statusCode int
+	var body []byte
+	var err error
+	err = h.circuitBreakers[h.getReservationsByUid].Call(func() error {
+		statusCode, body, err = h.getReservationsByUid(c.Param("reservationUid"))
+		return err
+	})
 	if err != nil {
 		log.Err(err).Msg("failed to process request to reservation service")
 		if errors.Is(err, errNotOkStatusCode) {
@@ -710,21 +871,54 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 	}
 
 	statusCode, body, err = h.updateAvailableCount(reservation.LibraryUid, reservation.BookUid, 1)
+	// откат + возврат в очередь
 	if err != nil {
 		log.Err(err).Msg("failed to process request to library service")
-		if errors.Is(err, errNotOkStatusCode) {
-			return c.String(statusCode, string(body))
+		statusCode, body, err = h.updateReservationStatus(reservation.ReservationUid, rentedStatus, c.Request().Header.Get("X-User-Name"))
+		if err != nil {
+			log.Err(err).Msg("failed to process request to reservation service")
+			if errors.Is(err, errNotOkStatusCode) {
+				return c.String(statusCode, string(body))
+			}
+			return c.NoContent(http.StatusNoContent)
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		h.retryHandler.broker.Publish("request.retry", retryData{
+			Time:    time.Now(),
+			Call:    h.ReturnBookByUser,
+			Context: c,
+		})
+		return c.NoContent(http.StatusNoContent)
 	}
 
 	statusCode, body, err = h.updateUserRating(c.Request().Header.Get("X-User-Name"), starsDiff)
+	// откат + возврат в очередь
 	if err != nil {
 		log.Err(err).Msg("failed to process request to rating service")
-		if errors.Is(err, errNotOkStatusCode) {
-			return c.String(statusCode, string(body))
+		statusCode, body, err = h.updateReservationStatus(reservation.ReservationUid, rentedStatus, c.Request().Header.Get("X-User-Name"))
+		if err != nil {
+			log.Err(err).Msg("failed to process request to reservation service")
+			if errors.Is(err, errNotOkStatusCode) {
+				return c.String(statusCode, string(body))
+			}
+			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		statusCode, body, err = h.updateAvailableCount(reservation.LibraryUid, reservation.BookUid, -1)
+		if err != nil {
+			log.Err(err).Msg("failed to process request to library service")
+			if errors.Is(err, errNotOkStatusCode) {
+				return c.String(statusCode, string(body))
+			}
+			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		}
+
+		h.retryHandler.broker.Publish("request.retry", retryData{
+			Time:    time.Now(),
+			Call:    h.ReturnBookByUser,
+			Context: c,
+		})
+
+		return c.NoContent(http.StatusNoContent)
+
 	}
 
 	return c.NoContent(http.StatusNoContent)
@@ -754,7 +948,13 @@ func (h *handler) getRatingByUser(userName string) (int, []byte, error) {
 }
 
 func (h *handler) GetRatingByUser(c echo.Context) error {
-	statusCode, body, err := h.getRatingByUser(c.Request().Header.Get("X-User-Name"))
+	var statusCode int
+	var body []byte
+	var err error
+	err = h.circuitBreakers[h.getRatingByUser].Call(func() error {
+		statusCode, body, err = h.getRatingByUser(c.Request().Header.Get("X-User-Name"))
+		return err
+	})
 	if err != nil {
 		log.Err(err).Msg("failed to process request to rating service")
 		if errors.Is(err, errNotOkStatusCode) {

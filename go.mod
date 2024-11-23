@@ -4,6 +4,7 @@ go 1.22.2
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/RohanPoojary/gomq v1.0.0
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
@@ -13,6 +14,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.8.4
+	go.uber.org/atomic v1.11.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

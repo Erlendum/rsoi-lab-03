@@ -1,0 +1,19 @@
+name: Test service
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        required: true
+        type: string
+
+jobs:
+  test:
+    name: Test service
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run unit tests 
+        run: go test ./internal/${{ inputs.service-name }}/...

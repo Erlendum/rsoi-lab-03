@@ -12,11 +12,17 @@ type Server struct {
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 }
 
+type CircuitBreaker struct {
+	MaxFailures  uint64        `yaml:"max_failures"`
+	ResetTimeout time.Duration `yaml:"reset_timeout"`
+}
+
 type Config struct {
-	Server               Server `yaml:"server"`
-	ReservationSystemURL string `yaml:"reservation_system_url"`
-	LibrarySystemURL     string `yaml:"library_system_url"`
-	RatingSystemURL      string `yaml:"rating_system_url"`
+	Server               Server         `yaml:"server"`
+	ReservationSystemURL string         `yaml:"reservation_system_url"`
+	LibrarySystemURL     string         `yaml:"library_system_url"`
+	RatingSystemURL      string         `yaml:"rating_system_url"`
+	CircuitBreaker       CircuitBreaker `yaml:"circuit_breaker"`
 }
 
 func New() (*Config, error) {

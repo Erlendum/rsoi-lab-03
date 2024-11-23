@@ -4,3 +4,6 @@ server:
 reservation_system_url: "http://zhremarket.ru:8070/api/v1"
 library_system_url: "http://zhremarket.ru:8060/api/v1"
 rating_system_url: "http://zhremarket.ru:8050/api/v1"
+circuit_breaker:
+  reset_timeout: 10s
+  max_failures: 3

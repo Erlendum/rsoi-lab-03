@@ -43,6 +43,36 @@ func (r *repository) CreateReservation(ctx context.Context, res *reservation) (i
 	return id, nil
 }
 
+func (r *repository) DeleteReservation(ctx context.Context, uid string) error {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	builder := psql.Delete("reservation").Where(sq.Eq{"reservation_uid": uid})
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "failed to build query")
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
+
+	res, err := r.conn.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "failed to execute query")
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "failed to get rows affected")
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("no rows affected")
+	}
+
+	return nil
+}
+
 func (r *repository) UpdateReservationStatus(ctx context.Context, uid string, username string, status string) error {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 

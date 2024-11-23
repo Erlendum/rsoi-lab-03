@@ -49,6 +49,20 @@ func (mr *MockstorageMockRecorder) CreateReservation(ctx, r interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateReservation", reflect.TypeOf((*Mockstorage)(nil).CreateReservation), ctx, r)
 }
 
+// DeleteReservation mocks base method.
+func (m *Mockstorage) DeleteReservation(ctx context.Context, uid string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteReservation", ctx, uid)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteReservation indicates an expected call of DeleteReservation.
+func (mr *MockstorageMockRecorder) DeleteReservation(ctx, uid interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteReservation", reflect.TypeOf((*Mockstorage)(nil).DeleteReservation), ctx, uid)
+}
+
 // GetReservation mocks base method.
 func (m *Mockstorage) GetReservation(ctx context.Context, uid string) (reservation, error) {
 	m.ctrl.T.Helper()

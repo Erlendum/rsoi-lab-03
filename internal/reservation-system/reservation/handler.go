@@ -24,6 +24,7 @@ type storage interface {
 	UpdateReservationStatus(ctx context.Context, uid string, username string, status string) error
 	GetReservation(ctx context.Context, uid string) (reservation, error)
 	GetReservations(ctx context.Context, username string, status string) ([]reservation, error)
+	DeleteReservation(ctx context.Context, uid string) error
 }
 
 type handler struct {
@@ -39,8 +40,33 @@ func (h *handler) Register(echo *echo.Echo) {
 
 	api.GET("/reservations/by-user/:username", h.GetReservations)
 	api.GET("/reservations/:uid", h.GetReservationByUid)
+	api.DELETE("/reservations/:uid", h.DeleteReservation)
 	api.POST("/reservations/", h.CreateReservation)
 	api.PUT("/reservations/:uid/status", h.UpdateReservationStatus)
+}
+
+func (h *handler) DeleteReservation(c echo.Context) error {
+	uid := c.Param("uid")
+	if uid == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "uid is wrong",
+		})
+	}
+
+	err := h.storage.DeleteReservation(c.Request().Context(), uid)
+	if err != nil {
+		log.Err(err).Msg("failed to delete reservation")
+		if errors.Is(err, errNotFound) {
+			return c.JSON(http.StatusNotFound, echo.Map{
+				"message": "reservation not found",
+			})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"message": "failed to delete reservation",
+		})
+	}
+
+	return c.NoContent(http.StatusOK)
 }
 
 func (h *handler) GetReservations(c echo.Context) error {

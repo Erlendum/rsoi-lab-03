@@ -1,0 +1,58 @@
+name: Deploy service
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        required: true
+        type: string
+    secrets:
+      GATEWAY_EXT_PORT:
+        required: true
+      LIBRARY_SYSTEM_EXT_PORT:
+        required: true
+      RESERVATION_SYSTEM_EXT_PORT:
+        required: true
+      RATING_SYSTEM_EXT_PORT:
+        required: true
+      DEPLOY_HOST:
+        required: true
+      DEPLOY_USERNAME:
+        required: true
+      DEPLOY_PRIVATE_KEY:
+        required: true
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set SERVICE_EXT_PORT based on service-name
+        id: set-port
+        run: |
+          if [ "${{ inputs.service-name }}" == "gateway" ]; then
+            echo "SERVICE_EXT_PORT=${{ secrets.GATEWAY_EXT_PORT }}" >> $GITHUB_ENV
+          elif [ "${{ inputs.service-name }}" == "library-system" ]; then
+            echo "SERVICE_EXT_PORT=${{ secrets.LIBRARY_SYSTEM_EXT_PORT }}" >> $GITHUB_ENV
+          elif [ "${{ inputs.service-name }}" == "reservation-system" ]; then
+            echo "SERVICE_EXT_PORT=${{ secrets.RESERVATION_SYSTEM_EXT_PORT }}" >> $GITHUB_ENV
+          elif [ "${{ inputs.service-name }}" == "rating-system" ]; then
+            echo "SERVICE_EXT_PORT=${{ secrets.RATING_SYSTEM_EXT_PORT }}" >> $GITHUB_ENV
+          else
+            echo "Unknown service-name: ${{ inputs.service-name }}"
+            exit 1
+          fi
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USERNAME }}
+          key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+          envs: SERVICE_EXT_PORT
+          allenvs: true
+          script: >-
+            docker pull erlendum/rsoi-lab-02-${{ inputs.service-name }}:latest &&
+            (docker stop ${{ inputs.service-name }} && docker rm ${{ inputs.service-name }} || true) &&
+            docker run --env-file /envs/${{ inputs.service-name }}.env --name ${{ inputs.service-name }} -p $SERVICE_EXT_PORT:8080 --restart always -d erlendum/rsoi-lab-02-${{ inputs.service-name }}
