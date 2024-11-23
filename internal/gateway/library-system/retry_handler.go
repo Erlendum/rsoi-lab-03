@@ -46,7 +46,7 @@ func (h *retryHandler) Handle() {
 			}
 
 			log.Info().Msgf("poller message from request.retry: %v", data)
-			for time.Now().Sub(data.Time) <= 10*time.Second {
+			for time.Now().Sub(data.Time) <= h.Timeout {
 			}
 
 			err := data.Call(data.Context)
