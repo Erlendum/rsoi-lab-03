@@ -5,8 +5,14 @@ set -e
 variant=${1:-${VARIANT}}
 service=${2:-${SERVICE_NAME}}
 port=${3:-${PORT_NUMBER}}
+ssh_private_key=${4:-${SSH_PRIVATE_KEY}}
+ssh_user=${5:-${SSH_USER}}
 
 path=$(dirname "$0")
+
+temp_key=$(mktemp)
+echo "$ssh_private_key" > "$temp_key"
+chmod 600 "$temp_key"
 
 timed() {
   end=$(date +%s)
@@ -36,9 +42,10 @@ step() {
 
   printf "=== Step %d: %s %s ===\n" "$step" "$operation" "$service"
 
-  docker compose "$operation" "$service"
+  ssh -i "$temp_key" "$ssh_user"@zhermarket.ru "docker $operation $service"
+  
   if [[ "$operation" == "start" ]]; then
-    "$path"/wait-for.sh -t 120 "http://localhost:$port/manage/health" -- echo "Host localhost:$port is active"
+    "$path"/wait-for.sh -t 120 "http://zhremarket.ru:$port/manage/health" -- echo "Host zhremarket.ru:$port is active"
   fi
 
   newman run \
@@ -70,3 +77,5 @@ step 3
 
 # start service
 step 4
+
+rm -f "$temp_key"
