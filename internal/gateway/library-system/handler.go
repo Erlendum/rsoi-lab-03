@@ -524,10 +524,7 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 	})
 	if err != nil {
 		log.Err(err).Msg("failed to process request to reservation service")
-		if errors.Is(err, errNotOkStatusCode) {
-			return c.JSON(statusCode, echo.Map{"message": err.Error()})
-		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		return c.JSON(http.StatusServiceUnavailable, echo.Map{"message": "Bonus Service unavailable"})
 	}
 
 	var body []byte
@@ -918,7 +915,7 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 			Context: c,
 		})
 
-		return c.NoContent(http.StatusNoContent)
+		return c.JSON(http.StatusServiceUnavailable, echo.Map{"message": "Bonus Service unavailable"})
 
 	}
 
@@ -949,19 +946,15 @@ func (h *handler) getRatingByUser(userName string) (int, []byte, error) {
 }
 
 func (h *handler) GetRatingByUser(c echo.Context) error {
-	var statusCode int
 	var body []byte
 	var err error
 	err = h.circuitBreakers["getRatingByUser"].Call(func() error {
-		statusCode, body, err = h.getRatingByUser(c.Request().Header.Get("X-User-Name"))
+		_, body, err = h.getRatingByUser(c.Request().Header.Get("X-User-Name"))
 		return err
 	})
 	if err != nil {
 		log.Err(err).Msg("failed to process request to rating service")
-		if errors.Is(err, errNotOkStatusCode) {
-			return c.String(statusCode, string(body))
-		}
-		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
+		return c.JSON(http.StatusServiceUnavailable, echo.Map{"message": "Bonus Service unavailable"})
 	}
 
 	c.Response().Header().Set("Content-Type", "application/json")
