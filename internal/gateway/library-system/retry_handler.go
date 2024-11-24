@@ -73,6 +73,7 @@ func (h *retryHandler) Handle() {
 					Call:    data.Call,
 					Context: data.Context,
 					Params:  data.Params,
+					ReqBody: data.ReqBody,
 				})
 				continue
 			}
@@ -84,6 +85,7 @@ func (h *retryHandler) Handle() {
 					Call:    data.Call,
 					Context: data.Context,
 					Params:  data.Params,
+					ReqBody: data.ReqBody,
 				})
 				continue
 			}
