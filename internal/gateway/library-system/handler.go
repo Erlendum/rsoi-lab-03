@@ -310,7 +310,6 @@ type reservationResp struct {
 }
 
 func (h *handler) getReservationsByUser(userName string) ([]reservationResp, int, error) {
-	log.Info().Msg(userName + " getReservationsByUser")
 	reqURL, err := url.Parse(h.config.ReservationSystemURL + "/reservations/by-user/" + userName)
 	if err != nil {
 		return nil, 0, err
@@ -349,6 +348,7 @@ func (h *handler) getReservationsByUser(userName string) ([]reservationResp, int
 }
 
 func (h *handler) getReservationsByUid(uid string) (int, []byte, error) {
+	log.Info().Msg(uid)
 	req, err := http.NewRequest(http.MethodGet, h.config.ReservationSystemURL+"/reservations/"+uid, nil)
 	if err != nil {
 		return 0, nil, err
@@ -365,7 +365,7 @@ func (h *handler) getReservationsByUid(uid string) (int, []byte, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return resp.StatusCode, body, errNotOkStatusCode
+		return resp.StatusCode, body, errors.Join(errNotOkStatusCode, fmt.Errorf("status code = %d", resp.StatusCode))
 	}
 
 	return resp.StatusCode, body, nil
