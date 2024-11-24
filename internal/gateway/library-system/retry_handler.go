@@ -6,12 +6,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 	"io"
-	"net/http"
 	"time"
 )
 
 const (
-	defaultRetryTimeout = 10 * time.Second
+	defaultRetryTimeout = 2 * time.Second
 )
 
 type retryData struct {
@@ -67,18 +66,6 @@ func (h *retryHandler) Handle() {
 
 			err := data.Call(data.Context)
 			if err != nil {
-				log.Error().Err(err).Msg("failed to retry request")
-				h.broker.Publish("request.retry", retryData{
-					Time:    time.Now(),
-					Call:    data.Call,
-					Context: data.Context,
-					Params:  data.Params,
-					ReqBody: data.ReqBody,
-				})
-				continue
-			}
-
-			if data.Context.Response().Status >= http.StatusInternalServerError {
 				log.Error().Err(err).Msg("failed to retry request")
 				h.broker.Publish("request.retry", retryData{
 					Time:    time.Now(),
