@@ -879,6 +879,7 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 			}
 			return c.NoContent(http.StatusNoContent)
 		}
+		
 		h.retryHandler.broker.Publish("request.retry", retryData{
 			Time:    time.Now(),
 			Call:    h.ReturnBookByUser,
