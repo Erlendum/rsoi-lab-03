@@ -638,12 +638,6 @@ func (h *handler) ReserveBookByUser(c echo.Context) error {
 			log.Err(err).Msg("failed to process request to reservation service")
 			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 		}
-		c.Request().Body = io.NopCloser(bytes.NewReader(reqBody))
-		h.retryHandler.broker.Publish("request.retry", retryData{
-			Time:    time.Now(),
-			Call:    h.ReserveBookByUser,
-			Context: c,
-		})
 		return c.JSON(http.StatusOK, fallbackResponse{
 			ReservationUid: createdReservation.ReservationUid,
 			Status:         createdReservation.Status,
@@ -885,7 +879,6 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 			}
 			return c.NoContent(http.StatusNoContent)
 		}
-		c.Request().Body = io.NopCloser(bytes.NewReader(reqBody))
 		h.retryHandler.broker.Publish("request.retry", retryData{
 			Time:    time.Now(),
 			Call:    h.ReturnBookByUser,
