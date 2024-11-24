@@ -890,6 +890,7 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 			Time:    time.Now(),
 			Call:    h.ReturnBookByUser,
 			Context: c,
+			Params:  map[string]string{"reservationUid": c.Param("reservationUid")},
 		})
 		return c.NoContent(http.StatusNoContent)
 	}
@@ -919,6 +920,7 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 			Time:    time.Now(),
 			Call:    h.ReturnBookByUser,
 			Context: c,
+			Params:  map[string]string{"reservationUid": c.Param("reservationUid")},
 		})
 
 		return c.NoContent(http.StatusNoContent)

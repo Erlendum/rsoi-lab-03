@@ -16,6 +16,7 @@ type retryData struct {
 	Time    time.Time
 	Call    func(c echo.Context) error
 	Context echo.Context
+	Params  map[string]string
 }
 
 type retryHandler struct {
@@ -45,6 +46,17 @@ func (h *retryHandler) Handle() {
 				continue
 			}
 
+			names := make([]string, 0, len(data.Params))
+			values := make([]string, 0, len(data.Params))
+
+			for k, v := range data.Params {
+				names = append(names, k)
+				values = append(values, v)
+			}
+
+			data.Context.SetParamNames(names...)
+			data.Context.SetParamValues(values...)
+
 			log.Info().Msgf("poller message from request.retry: %v", data)
 			for time.Now().Sub(data.Time) <= h.Timeout {
 			}
@@ -56,6 +68,7 @@ func (h *retryHandler) Handle() {
 					Time:    time.Now(),
 					Call:    data.Call,
 					Context: data.Context,
+					Params:  data.Params,
 				})
 				continue
 			}
@@ -66,6 +79,7 @@ func (h *retryHandler) Handle() {
 					Time:    time.Now(),
 					Call:    data.Call,
 					Context: data.Context,
+					Params:  data.Params,
 				})
 				continue
 			}
