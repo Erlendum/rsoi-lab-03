@@ -1,9 +1,11 @@
 package library_system
 
 import (
+	"bytes"
 	"github.com/RohanPoojary/gomq"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
+	"io"
 	"net/http"
 	"time"
 )
@@ -17,6 +19,7 @@ type retryData struct {
 	Call    func(c echo.Context) error
 	Context echo.Context
 	Params  map[string]string
+	ReqBody []byte
 }
 
 type retryHandler struct {
@@ -56,6 +59,7 @@ func (h *retryHandler) Handle() {
 
 			data.Context.SetParamNames(names...)
 			data.Context.SetParamValues(values...)
+			data.Context.Request().Body = io.NopCloser(bytes.NewReader(data.ReqBody))
 
 			log.Info().Msgf("poller message from request.retry: %v", data)
 			for time.Now().Sub(data.Time) <= h.Timeout {

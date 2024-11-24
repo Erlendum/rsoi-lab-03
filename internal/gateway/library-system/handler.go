@@ -890,6 +890,7 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 			Time:    time.Now(),
 			Call:    h.ReturnBookByUser,
 			Context: c,
+			ReqBody: reqBody,
 			Params:  map[string]string{"reservationUid": c.Param("reservationUid")},
 		})
 		return c.NoContent(http.StatusNoContent)
@@ -915,11 +916,11 @@ func (h *handler) ReturnBookByUser(c echo.Context) error {
 			}
 			return c.JSON(http.StatusInternalServerError, echo.Map{"message": "failed to process request"})
 		}
-		c.Request().Body = io.NopCloser(bytes.NewReader(reqBody))
 		h.retryHandler.broker.Publish("request.retry", retryData{
 			Time:    time.Now(),
 			Call:    h.ReturnBookByUser,
 			Context: c,
+			ReqBody: reqBody,
 			Params:  map[string]string{"reservationUid": c.Param("reservationUid")},
 		})
 
